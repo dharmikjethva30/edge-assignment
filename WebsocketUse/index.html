@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Real-Time Auction</title>
+</head>
+<body>
+  <h1>Real-Time Auction</h1>
+  <p>Current Highest Bid: $<span id="currentBid">0</span></p>
+  <label for="bidAmount">Your Bid: $</label>
+  <input type="number" id="bidAmount">
+  <button onclick="placeBid()">Place Bid</button>
+
+  <script>
+    const ws = new WebSocket('ws://localhost:3000');
+    const currentBidElement = document.getElementById('currentBid');
+    const highestBidderElement = document.getElementById('highestBidder');
+    const bidAmountInput = document.getElementById('bidAmount');
+
+    ws.onopen = function() {
+      console.log('Connected to WebSocket server');
+    };
+
+    ws.onmessage = function(event) {
+      const data = JSON.parse(event.data);
+      currentBidElement.textContent = data.highestBid;
+      highestBidderElement.textContent = data.highestBidder || 'None';
+    };
+
+    ws.onclose = function() {
+      console.log('Connection to WebSocket server closed');
+    };
+
+    function placeBid() {
+      const bidAmount = parseInt(bidAmountInput.value);
+      if (!isNaN(bidAmount) && bidAmount > parseInt(currentBidElement.textContent)) {
+        const bidData = { type: 'bid', bid: bidAmount };
+        ws.send(JSON.stringify(bidData));
+        bidAmountInput.value = '';
+      } else {
+        alert('Your bid must be higher than the current highest bid.');
+      }
+    }
+  </script>
+</body>
+</html>

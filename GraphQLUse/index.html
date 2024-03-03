@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Seat Booking</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+    }
+    .container {
+      max-width: 600px;
+      margin: 20px auto;
+      padding: 20px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+    }
+    .seat {
+      display: inline-block;
+      width: 50px;
+      height: 50px;
+      margin: 5px;
+      border: 1px solid #ccc;
+      text-align: center;
+      line-height: 50px;
+      cursor: pointer;
+    }
+    .booked {
+      background-color: #f00;
+      color: #fff;
+      cursor: not-allowed;
+    }
+    .selected {
+      background-color: #007bff;
+      color: #fff;
+    }
+    .book-btn {
+      display: block;
+      margin-top: 10px;
+      padding: 10px 20px;
+      background-color: #007bff;
+      color: #fff;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>Available Seats</h2>
+    <div id="seatsContainer"></div>
+    <button id="bookBtn" class="book-btn" disabled>Book Ticket</button>
+  </div>
+
+  <script>
+    document.addEventListener("DOMContentLoaded", function() {
+      const seatsContainer = document.getElementById('seatsContainer');
+      const bookBtn = document.getElementById('bookBtn');
+      let selectedSeatId = null;
+
+      // Create containers for all seats beforehand
+      for (let i = 1; i <= 50; i++) {
+        const seatElement = document.createElement('div');
+        seatElement.className = 'seat';
+        seatElement.textContent = i;
+        seatElement.setAttribute('data-seat-id', i);
+        seatElement.addEventListener('click', () => selectSeat(i));
+        seatsContainer.appendChild(seatElement);
+      }
+
+      function selectSeat(seatId) {
+        const selectedSeatElement = document.querySelector(`[data-seat-id="${seatId}"]`);
+        if (!selectedSeatElement.classList.contains('booked')) {
+          if (selectedSeatId) {
+            const previousSelectedSeatElement = document.querySelector(`[data-seat-id="${selectedSeatId}"]`);
+            previousSelectedSeatElement.classList.remove('selected');
+          }
+          selectedSeatElement.classList.add('selected');
+          selectedSeatId = seatId;
+          bookBtn.removeAttribute('disabled');
+        }
+      }
+
+      bookBtn.addEventListener('click', () => bookTicket());
+
+      function bookTicket() {
+        if (selectedSeatId) {
+          fetch('http://localhost:4000/graphql', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ query: `mutation { bookSeat(seatId: "${selectedSeatId}") { id } }` }),
+          })
+          .then(res => res.json())
+          .then(data => {
+            if (data.errors) {
+              alert(data.errors[0].message);
+            } else {
+              alert(`Seat ${selectedSeatId} booked successfully!`);
+              document.querySelector(`[data-seat-id="${selectedSeatId}"]`).classList.add('booked');
+              document.querySelector(`[data-seat-id="${selectedSeatId}"]`).classList.remove('selected');
+              selectedSeatId = null;
+              bookBtn.setAttribute('disabled', true);
+            }
+          })
+          .catch(error => console.error('Error booking seat:', error));
+        } else {
+          alert('Please select a seat before booking.');
+        }
+      }
+    });
+  </script>
+</body>
+</html>

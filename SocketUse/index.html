@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Real-Time Drawing App</title>
+  <style>
+    #canvas {
+      border: 1px solid black;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="canvas" width="800" height="600"></canvas>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.1.3/socket.io.js"></script>
+  <script>
+    var socket = io.connect('http://192.168.1.25:3000');
+    var canvas = document.getElementById('canvas');
+    var context = canvas.getContext('2d');
+
+    var drawing = false;
+    var lastX, lastY;
+
+    canvas.addEventListener('mousedown', function(e) {
+      drawing = true;
+      [lastX, lastY] = [e.offsetX, e.offsetY];
+    });
+
+    canvas.addEventListener('mousemove', function(e) {
+      if (!drawing) return;
+
+      var currentX = e.offsetX;
+      var currentY = e.offsetY;
+
+      drawLine(lastX, lastY, currentX, currentY);
+
+      socket.emit('draw', { lastX, lastY, currentX, currentY });
+
+      lastX = currentX;
+      lastY = currentY;
+    });
+
+    canvas.addEventListener('mouseup', function() {
+      drawing = false;
+    });
+
+    function drawLine(x1, y1, x2, y2) {
+      context.beginPath();
+      context.moveTo(x1, y1);
+      context.lineTo(x2, y2);
+      context.stroke();
+    }
+
+    socket.on('draw', function(data) {
+      drawLine(data.lastX, data.lastY, data.currentX, data.currentY);
+    });
+  </script>
+</body>
+</html>
